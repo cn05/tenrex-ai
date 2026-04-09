@@ -1,6 +1,8 @@
+// src/components/app-sidebar.jsx
 "use client";
 
 import * as React from "react";
+import Link from "next/link"; // Import Link dari Next.js
 
 import { NavMain } from "@/components/nav-main";
 import { SidebarOptInForm } from "@/components/sidebar-opt-in-form";
@@ -14,27 +16,18 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { GalleryVerticalEndIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { Plus } from "lucide-react";
 
-// This is sample data.
-const data = {
-  navMain: [
-    {
-      id: "1", // Tambahkan ID untuk referensi aksi
-      title: "Chat Sejarah Majapahit",
-      url: "/chat/1",
-    },
-    {
-      id: "2",
-      title: "Fixing Bug Next.js",
-      url: "/chat/2",
-    },
-  ],
-};
+// 🔥 TERIMA PROPS chatHistory
+export function AppSidebar({ chatHistory = [], ...props }) {
+  // Format data dari database agar sesuai dengan struktur yang dibutuhkan NavMain
+  const formattedNavItems = chatHistory.map((chat) => ({
+    id: chat.id,
+    title: chat.title || "Chat Baru", // Fallback jika title kosong
+    url: `/chat/${chat.id}`,
+  }));
 
-export function AppSidebar({ ...props }) {
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -45,18 +38,20 @@ export function AppSidebar({ ...props }) {
               asChild
               className="h-auto p-0 hover:bg-transparent"
             >
-              <a href="#" className="w-full">
+              {/* Ubah href menjadi "/" agar mengarah ke halaman mulai chat baru */}
+              <Link href="/" className="w-full">
                 <Button className="w-full justify-start gap-2 bg-sidebar-primary text-sidebar-primary-foreground shadow-none py-5 md:py-4 ">
                   <Plus className="size-4" />
                   <span className="font-semibold">New Chat</span>
                 </Button>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        {/* Masukkan data yang sudah diformat ke NavMain */}
+        <NavMain items={formattedNavItems} />
       </SidebarContent>
       <SidebarFooter>
         <div className="p-1">
