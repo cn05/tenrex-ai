@@ -1,0 +1,31 @@
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { SidebarInput } from "@/components/ui/sidebar";
+import { LogoutButton } from "./logout";
+import { NavUser } from "./nav-user";
+
+const data = {
+  user: {
+    name: "shadcn",
+    email: "m@example.com",
+    avatar: "/avatars/shadcn.jpg",
+  },
+};
+
+export function SidebarOptInForm() {
+  return (
+    <Card className="gap-2 py-4 shadow-none">
+      <CardContent className="px-4">
+        <div className="grid gap-2.5">
+          <NavUser />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
