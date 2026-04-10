@@ -33,7 +33,8 @@ export function LoginForm({ className, ...props }) {
     e.preventDefault();
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // 1. Proses Autentikasi
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -44,40 +45,20 @@ export function LoginForm({ className, ...props }) {
       return;
     }
 
-    // Buat chat langsung setelah login
-    const { data: chat, error: chatError } = await supabase
-      .from("chats")
-      .insert({ user_id: data.user.id, title: "New Chat" })
-      .select("id")
-      .single();
-
+    // 2. Langsung arahkan ke halaman utama (Home / New Chat)
     setLoading(false);
-
-    if (chatError || !chat) {
-      alert("Gagal membuat chat");
-      return;
-    }
-
-    router.push(`/chat/${chat.id}`);
+    router.push("/");
   };
 
   const loginWithGoogle = () => {
     supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
+        // Callback route ini biasanya akan otomatis mengarahkan ke "/" setelah berhasil
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
   };
-
-  // const loginWithFacebook = async () => {
-  //   await supabase.auth.signInWithOAuth({
-  //     provider: "facebook",
-  //     options: {
-  //       redirectTo: `${window.location.origin}/auth/callback`,
-  //     },
-  //   });
-  // };
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -89,7 +70,6 @@ export function LoginForm({ className, ...props }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Sisa UI Anda tetap sama persis, tidak ada yang perlu diubah */}
           <form onSubmit={handleLogin}>
             <FieldGroup>
               <Field>
@@ -108,7 +88,6 @@ export function LoginForm({ className, ...props }) {
                   />
                   Login with Google
                 </Button>
-                {/* Facebook (Bisa di-uncomment nanti kalau sudah siap) */}
               </Field>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 Or continue with

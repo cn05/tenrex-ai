@@ -9,32 +9,21 @@ export async function GET(request) {
   if (code) {
     const supabase = await createClient();
 
-    const { data: sessionData, error: sessionError } =
+    // 1. Tukar kode otorisasi Google dengan sesi user
+    const { error: sessionError } =
       await supabase.auth.exchangeCodeForSession(code);
 
-    if (sessionError || !sessionData?.user) {
+    // 2. Jika gagal, kembalikan ke halaman login
+    if (sessionError) {
       console.error("Session error:", sessionError);
       return NextResponse.redirect(`${origin}/login`);
     }
 
-    const user = sessionData.user;
-
-    const { data: chat, error } = await supabase
-      .from("chats")
-      .insert({
-        user_id: user.id,
-        title: "New Chat",
-      })
-      .select()
-      .single();
-
-    if (error || !chat) {
-      console.error("Insert error:", error);
-      return new Response("INSERT GAGAL", { status: 500 });
-    }
-
-    return NextResponse.redirect(`${origin}/chat/${chat.id}`);
+    // 3. Jika berhasil, LANGSUNG arahkan ke halaman utama (Home)
+    // Tidak perlu lagi membuat chat "New Chat" di sini
+    return NextResponse.redirect(`${origin}/`);
   }
 
+  // Jika tidak ada code di URL, kembalikan ke login
   return NextResponse.redirect(`${origin}/login`);
 }
