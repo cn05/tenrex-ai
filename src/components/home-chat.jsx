@@ -26,17 +26,8 @@ export default function HomeChat({ userId }) {
 
       if (chatError) throw chatError;
 
-      // 2. Panggil API chat untuk memproses pesan pertama ke AI
-      await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chatId: chat.id,
-          userId: userId,
-          message: input,
-          isFirstMessage: true, // Akan memicu backend untuk merename judul chat
-        }),
-      });
+      // 2. Simpan prompt awal di sessionStorage agar halaman chat bisa langsung auto-stream.
+      window.sessionStorage.setItem(`pending-chat:${chat.id}`, input.trim());
 
       // 3. Refresh router agar sidebar menarik data terbaru, lalu arahkan ke chat room
       router.refresh();

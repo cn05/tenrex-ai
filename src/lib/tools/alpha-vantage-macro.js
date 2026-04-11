@@ -1,10 +1,14 @@
 // src/lib/tools/alpha-vantage-macro.js
 
+function cleanValue(value) {
+  return value === undefined || value === null || value === "" ? null : value;
+}
+
 /**
  * Fetches Forex exchange rates, Commodity prices, and macroeconomic indicators.
  * @param {string} assetType - "forex", "commodity", or "economic_indicator"
  * @param {string} symbolOrIndicator - e.g., "EURUSD", "XAUUSD", "US CPI", "Fed Interest Rate"
- * @returns {Promise<string>} - Formatted string with macro data
+ * @returns {Promise<object>} - Structured macro and FX data
  */
 export async function getMacroData(assetType, symbolOrIndicator) {
   console.log(
@@ -29,17 +33,36 @@ export async function getMacroData(assetType, symbolOrIndicator) {
       const data = await response.json();
 
       if (!data["Realtime Currency Exchange Rate"]) {
-        return `Failed to retrieve exchange rate for ${fromCurrency}/${toCurrency}. Please verify the symbol.`;
+        return {
+          ok: false,
+          source: "Alpha Vantage",
+          assetType,
+          requestedSymbol: symbolOrIndicator,
+          error: `Failed to retrieve exchange rate for ${fromCurrency}/${toCurrency}. Please verify the symbol.`,
+        };
       }
 
       const rateData = data["Realtime Currency Exchange Rate"];
-      return `Live Exchange Rate for ${fromCurrency}/${toCurrency}:
-- Current Rate: ${rateData["5. Exchange Rate"]}
-- Bid Price: ${rateData["8. Bid Price"]}
-- Ask Price: ${rateData["9. Ask Price"]}
-- Last Refreshed: ${rateData["6. Last Refreshed"]} (${rateData["7. Time Zone"]})
-
-Use this exact rate to inform the user about the forex or commodity market.`;
+      return {
+        ok: true,
+        tool: "macroForex",
+        source: "Alpha Vantage",
+        assetType,
+        requestedSymbol: symbolOrIndicator,
+        fetchedAt: new Date().toISOString(),
+        exchangeRateSnapshot: {
+          pair: `${fromCurrency}/${toCurrency}`,
+          rate: cleanValue(rateData["5. Exchange Rate"]),
+          bid: cleanValue(rateData["8. Bid Price"]),
+          ask: cleanValue(rateData["9. Ask Price"]),
+          lastRefreshed: cleanValue(rateData["6. Last Refreshed"]),
+          timezone: cleanValue(rateData["7. Time Zone"]),
+        },
+        analystNotes: [
+          "Use the current rate as the headline number for forex or commodity questions.",
+          "Explain why the rate matters only if the user asks for interpretation.",
+        ],
+      };
     }
 
     // 2. Logika untuk INDIKATOR EKONOMI (Inflasi, Suku Bunga, PDB)
@@ -68,23 +91,54 @@ Use this exact rate to inform the user about the forex or commodity market.`;
       const data = await response.json();
 
       if (!data.data || data.data.length === 0) {
-        return `Failed to retrieve economic indicator data for ${symbolOrIndicator}.`;
+        return {
+          ok: false,
+          source: "Alpha Vantage",
+          assetType,
+          requestedSymbol: symbolOrIndicator,
+          error: `Failed to retrieve economic indicator data for ${symbolOrIndicator}.`,
+        };
       }
 
       // Ambil data bulan/kuartal terbaru
       const latestData = data.data[0];
       const unit = data.unit || "%";
 
-      return `Macroeconomic Indicator (${data.name || avFunction}):
-- Latest Value: ${latestData.value} ${unit}
-- Date Recorded: ${latestData.date}
-
-Context: Use this fundamental economic data to analyze broader market impacts.`;
+      return {
+        ok: true,
+        tool: "macroForex",
+        source: "Alpha Vantage",
+        assetType,
+        requestedSymbol: symbolOrIndicator,
+        fetchedAt: new Date().toISOString(),
+        macroSnapshot: {
+          name: data.name || avFunction,
+          latestValue: cleanValue(latestData.value),
+          unit,
+          dateRecorded: cleanValue(latestData.date),
+        },
+        analystNotes: [
+          "Connect macro data to risk appetite, rates, inflation, or growth expectations only when relevant.",
+          "Avoid overstating one macro data point as a full market conclusion.",
+        ],
+      };
     }
 
-    return "Invalid assetType requested for Macroeconomic staff.";
+    return {
+      ok: false,
+      source: "Alpha Vantage",
+      assetType,
+      requestedSymbol: symbolOrIndicator,
+      error: "Invalid assetType requested for Macroeconomic staff.",
+    };
   } catch (error) {
     console.error("[Staff 5 - Macro/Forex] Error:", error.message);
-    return "Error: Unable to connect to the global macroeconomic database.";
+    return {
+      ok: false,
+      source: "Alpha Vantage",
+      assetType,
+      requestedSymbol: symbolOrIndicator,
+      error: "Unable to connect to the global macroeconomic database.",
+    };
   }
 }
