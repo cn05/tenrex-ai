@@ -5,11 +5,11 @@ import { z } from "zod";
 
 // Import fungsi asli dari folder tools Anda nanti di sini:
 import { getTavilyNews } from "@/lib/tools/tavily-news";
-// import { getBinancePrice } from "@/lib/tools/binance-crypto";
-// import { getFearAndGreed } from "@/lib/tools/alternative-me";
-// import { getStockData } from "@/lib/tools/finnhub-stocks";
-// import { getMacroData } from "@/lib/tools/alpha-vantage-macro";
-// import { calculateTechnical } from "@/lib/tools/technical-calc";
+import { getBinancePrice } from "@/lib/tools/binance-crypto";
+import { getFearAndGreed } from "@/lib/tools/alternative-me";
+import { getStockData } from "@/lib/tools/finnhub-stocks";
+import { getMacroData } from "@/lib/tools/alpha-vantage-macro";
+import { calculateTechnical } from "@/lib/tools/technical-calc";
 
 export async function POST(req) {
   try {
@@ -68,115 +68,85 @@ STRICT RULES:
     // 5. ORKESTRASI 6 STAF DENGAN VERCEL AI
     // ==========================================
     const result = streamText({
-      model: openai("gpt-4o"), // Sangat disarankan pakai gpt-4o atau gpt-4-turbo untuk handle 6 tools sekaligus
+      model: openai("gpt-4o", { compatibility: "strict" }), // Sangat disarankan pakai gpt-4o atau gpt-4-turbo untuk handle 6 tools sekaligus
       system: systemPrompt,
       messages: coreMessages,
       maxSteps: 6, // Mengizinkan AI memanggil hingga 6 staf sebelum merangkum jawaban
       tools: {
-        // --- STAF 1: BERITA & NARASI (TAVILY) ---
+        // --- STAF 1: TAVILY ---
         tavilyNews: tool({
           description:
-            "Searches for the latest news, market sentiment, narratives, or articles related to assets, companies, or macroeconomics.",
+            "Searches for the latest news, market sentiment, or articles.",
           parameters: z.object({
-            query: z
-              .string()
-              .describe(
-                "The news topic to search for, must be specific (e.g., 'Bitcoin ETF news today' or 'Apple earnings report').",
-              ),
+            query: z.string(), // Hapus .describe() yang bikin error
           }),
           execute: async ({ query }) => {
             return await getTavilyNews(query);
           },
         }),
 
-        // --- STAF 2: KRIPTO LIVE (BINANCE) ---
+        // --- STAF 2: BINANCE ---
         binanceCrypto: tool({
           description:
-            "Fetches live price, volume, and 24-hour changes specifically for Cryptocurrency assets.",
+            "Fetches live price, volume, and 24-hour changes for Cryptocurrency assets.",
           parameters: z.object({
-            symbol: z
-              .string()
-              .describe("Crypto symbol (e.g., 'BTCUSDT', 'ETHUSDT')."),
+            symbol: z.string(),
           }),
           execute: async ({ symbol }) => {
-            // return await getBinancePrice(symbol);
-            return `[Simulation] Crypto Live Price ${symbol}`;
+            // Pastikan nama fungsinya sesuai dengan yang lu import ya
+            return await getBinancePrice(symbol);
           },
         }),
 
-        // --- STAF 3: SENTIMEN PASAR (ALTERNATIVE.ME) ---
+        // --- STAF 3: SENTIMEN (FIKSASI ERROR OBJECT KOSONG) ---
         cryptoSentiment: tool({
           description:
             "Fetches the Fear & Greed Index to gauge current market psychology.",
+          // 🔥 KUNCI: Kasih parameter dummy biar nggak dikirim sebagai object kosong ke OpenAI
           parameters: z.object({
-            // Tidak butuh parameter karena API Fear & Greed bersifat global
+            dummyTrigger: z.boolean().optional(),
           }),
           execute: async () => {
-            // return await getFearAndGreed();
-            return `[Simulasi] Fear and Greed Index hari ini adalah 75 (Greed).`;
+            return await getFearAndGreed();
           },
         }),
 
-        // --- STAF 4: SAHAM & FUNDAMENTAL (FINNHUB) ---
+        // --- STAF 4: FINNHUB ---
         stockMarket: tool({
-          description:
-            "Fetches live global stock prices (Equities), company metrics (P/E, Market Cap), or fundamentals.",
+          description: "Fetches live global stock prices or fundamentals.",
           parameters: z.object({
-            ticker: z
-              .string()
-              .describe(
-                "Company stock ticker (e.g., 'AAPL' for Apple, 'TSLA' for Tesla).",
-              ),
-            dataType: z
-              .enum(["price", "fundamental"])
-              .describe("The type of data needed: 'price' or 'fundamental'."),
+            ticker: z.string(),
+            dataType: z.enum(["price", "fundamental"]),
           }),
           execute: async ({ ticker, dataType }) => {
-            // return await getStockData(ticker, dataType);
-            return `[Simulasi] Data saham ${ticker} untuk kategori ${dataType}`;
+            return await getStockData(ticker, dataType);
           },
         }),
 
-        // --- STAF 5: MAKROEKONOMI & FOREX (ALPHA VANTAGE) ---
+        // --- STAF 5: ALPHA VANTAGE ---
         macroForex: tool({
           description:
-            "Fetches Forex exchange rates, Commodity prices (Gold/Oil), and macroeconomic indicators (Inflation, Interest Rates).",
+            "Fetches Forex exchange rates, Commodity prices, and macroeconomic indicators.",
           parameters: z.object({
-            assetType: z
-              .enum(["forex", "commodity", "economic_indicator"])
-              .describe("The type of macro instrument."),
-            symbolOrIndicator: z
-              .string()
-              .describe(
-                "Symbol (e.g., 'EURUSD', 'XAUUSD') or indicator name (e.g., 'US CPI', 'Fed Interest Rate').",
-              ),
+            assetType: z.enum(["forex", "commodity", "economic_indicator"]),
+            symbolOrIndicator: z.string(),
           }),
           execute: async ({ assetType, symbolOrIndicator }) => {
-            // return await getMacroData(assetType, symbolOrIndicator);
-            return `[Simulasi] Data ${assetType} untuk ${symbolOrIndicator}`;
+            return await getMacroData(assetType, symbolOrIndicator);
           },
         }),
 
-        // --- STAF 6: MESIN ANALISIS TEKNIKAL ---
+        // --- STAF 6: TECHNICAL ENGINE ---
         technicalEngine: tool({
           description:
-            "Calculates mathematical technical indicators (RSI, MACD, Moving Average) for all asset types.",
+            "Calculates mathematical technical indicators (RSI, MACD, Moving Average).",
           parameters: z.object({
-            assetSymbol: z
-              .string()
-              .describe(
-                "The asset symbol to analyze (e.g., 'BTCUSDT' or 'AAPL').",
-              ),
-            indicator: z
-              .enum(["RSI", "MACD", "MA"])
-              .describe("The type of technical indicator to calculate."),
-            timeframe: z
-              .string()
-              .describe("Chart timeframe, e.g., '1d' (daily), '4h' (4 hours)."),
+            assetSymbol: z.string(),
+            indicator: z.enum(["RSI", "MACD", "MA"]),
+            timeframe: z.string(),
           }),
           execute: async ({ assetSymbol, indicator, timeframe }) => {
-            // return await calculateTechnical(assetSymbol, indicator, timeframe);
-            return `[Simulasi] Indikator ${indicator} untuk ${assetSymbol} di timeframe ${timeframe}`;
+            return await calculateTechnical(assetSymbol, indicator, timeframe);
           },
         }),
       },
@@ -191,7 +161,9 @@ STRICT RULES:
     });
 
     // 7. Streaming Response
-    return result.toDataStreamResponse();
+    return new Response(result.textStream, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   } catch (error) {
     console.error("API Error:", error);
     return new Response("Internal Server Error", { status: 500 });
